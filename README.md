@@ -12,42 +12,27 @@ The protection suite operates on three distinct layers to intercept, filter, and
 sequenceDiagram
     autonumber
     actor Client as Player / Attacker
-    participant Proxy as Layer 2: Python Proxy (Port 7777)
-    participant Plugin as Layer 1: C++ Plugin (Port 7778)
-    participant Server as SA-MP Server Core
-    participant DB as SQLite Database
+    participant Proxy as Layer 2: Proxy (Port 7777)
+    participant Server as Layer 1: Server & Plugin (Port 7778)
 
-    note over Client, DB: Case A: Server Query / Ping
-    Client->>Proxy: UDP Query Packet (e.g. Server Info)
-    alt IP is in Proxy Ban List
-        Proxy-->>Client: Drop Packet (No Reply)
-    else Query exists in Cache (< 2s TTL)
-        Proxy-->>Client: Return Cached Response (Instant)
-    else Cache Miss / First Query
-        Proxy->>Plugin: Forward Query to Backend Port
-        Plugin->>Server: Process Query
-        Server-->>Plugin: Query Response
-        Plugin-->>Proxy: Send Response
-        Proxy->>Proxy: Cache Response (2.0s TTL)
-        Proxy-->>Client: Forward Response
+    note over Client, Server: Skenario A: Query / Ping Server (Favorites List)
+    Client->>Proxy: Kirim Query / Ping
+    alt Query ada di Cache
+        Proxy-->>Client: Balas langsung dari Cache (Hemat CPU)
+    else Cache Miss / IP Flooding
+        Proxy->>Server: Minta data terbaru (jika IP tidak diflood)
+        Server-->>Proxy: Kirim data
+        Proxy-->>Client: Balas ke Client
     end
 
-    note over Client, DB: Case B: Game Sync / Connection Packet
-    Client->>Proxy: UDP Game Packet (RakNet protocol)
-    Proxy->>Plugin: Forward Packet to Backend (Dynamic NAT)
-    Plugin->>DB: Query: Is IP Banned?
-    DB-->>Plugin: Result (Yes / No)
-    alt IP is Banned
-        Plugin-->>Proxy: Drop Packet (Memory Deallocated)
-    else IP is Not Banned
-        Plugin->>Plugin: Track in Sliding Window Rate Limiter
-        alt Packet Rate Exceeded
-            Plugin->>DB: Add Ban (5 Minutes)
-            Plugin-->>Proxy: Drop Packet
-        else Rate Limit OK
-            Plugin->>Server: Pass Packet to Game Loop
-            Server-->>Client: Game Sync Response (via Proxy)
-        end
+    note over Client, Server: Skenario B: Game Packet (Bermain / Login)
+    Client->>Proxy: Kirim Game Packet
+    Proxy->>Server: Teruskan paket game
+    alt IP masuk Blacklist / Flooding
+        Server-->>Server: Paket didrop oleh C++ Plugin (Hemat Resource)
+    else IP Aman
+        Server->>Server: Proses paket di game mode
+        Server-->>Client: Kirim respon game
     end
 ```
 
