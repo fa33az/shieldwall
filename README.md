@@ -117,4 +117,12 @@ The following commands are available to administrators in-game:
 ---
 
 ## Authors
-- fa33az
+- [[fa33az](https://github.com/fa33az)]
+
+---
+
+## License
+
+Copyright (c) 2026 [fa33az](https://github.com/fa33az). All rights reserved.
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
