@@ -137,7 +137,7 @@ class ProxyServerProtocol(asyncio.DatagramProtocol):
             
             if query_type == b'p':
                 self.proxy.stats_forwards += 1
-                self.forward_query(data, addr)
+                asyncio.create_task(self.forward_query(data, addr))
                 return
 
             now = time.time()
