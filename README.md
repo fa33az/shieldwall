@@ -8,6 +8,53 @@ ShieldWall is a multi-layer anti-DDoS protection suite designed for SA-MP (San A
 
 The protection suite operates on three distinct layers to intercept, filter, and cache network traffic before it can exhaust server resources.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Player / Attacker
+    participant Proxy as Layer 2: Python Proxy (Port 7777)
+    participant Plugin as Layer 1: C++ Plugin (Port 7778)
+    participant Server as SA-MP Server Core
+    database DB as SQLite Database
+
+    rect rgb(240, 248, 255)
+        note right of Client: Case A: Server Query / Ping
+        Client->>Proxy: UDP Query Packet (e.g. Server Info)
+        alt IP is in Proxy Ban List
+            Proxy-->>Client: Drop Packet (No Reply)
+        else Query exists in Cache (< 2s TTL)
+            Proxy-->>Client: Return Cached Response (Instant)
+        else Cache Miss / First Query
+            Proxy->>Plugin: Forward Query to Backend Port
+            Plugin->>Server: Process Query
+            Server-->>Plugin: Query Response
+            Plugin-->>Proxy: Send Response
+            Proxy->>Proxy: Cache Response (2.0s TTL)
+            Proxy-->>Client: Forward Response
+        end
+    end
+
+    rect rgb(255, 240, 245)
+        note right of Client: Case B: Game Sync / Connection Packet
+        Client->>Proxy: UDP Game Packet (RakNet protocol)
+        Proxy->>Plugin: Forward Packet to Backend (Dynamic NAT)
+        Plugin->>DB: Query: Is IP Banned?
+        DB-->>Plugin: Result (Yes / No)
+        alt IP is Banned
+            Plugin-->>Proxy: Drop Packet (Memory Deallocated)
+        else IP is Not Banned
+            Plugin->>Plugin: Track in Sliding Window Rate Limiter
+            alt Packet Rate Exceeded
+                Plugin->>DB: Add Ban (5 Minutes)
+                Plugin-->>Proxy: Drop Packet
+            else Rate Limit OK
+                Plugin->>Server: Pass Packet to Game Loop
+                Server-->>Client: Game Sync Response (via Proxy)
+            end
+        end
+    end
+```
+
 ### Layer 1: C++ RakNet Packet Filter Plugin
 - Hooks the `RakServerInterface::Receive` method via virtual method table detouring (vtable index 9 on Windows, 10 on Linux).
 - Intercepts raw network packets directly in memory.
