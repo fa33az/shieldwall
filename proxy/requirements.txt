@@ -1,0 +1,1 @@
+# Zero external dependencies. Uses standard python library (asyncio, socket, json, time).

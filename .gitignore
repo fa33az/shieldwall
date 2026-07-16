@@ -1,0 +1,19 @@
+# Build directories
+plugin/build/
+
+# Logs and DB
+*.log
+logs/
+scriptfiles/*.db
+scriptfiles/*.db-journal
+
+# Compiled Pawn binaries
+*.amx
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS specific files
+.DS_Store
+Thumbs.db
