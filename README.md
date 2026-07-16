@@ -1,6 +1,14 @@
-# ShieldWall DDoS Protection Suite
+<p align="center">
+  <a href="https://open.mp" target="_blank">
+    <img src="logo.png" alt="ShieldWall Logo" width="200" height="200" />
+  </a>
+</p>
 
-ShieldWall is a multi-layer anti-DDoS protection suite designed for SA-MP (San Andreas Multiplayer) and open.mp servers. It consists of three integrated layers: an asynchronous Python query proxy, a C++ RakNet packet filter plugin, and a Pawn administration filterscript.
+<h1 align="center">ShieldWall : DDoS Protection SA-MP</h1>
+
+<p align="center">
+  ShieldWall is a highly optimized, multi-layer anti-DDoS protection suite engineered specifically for SA-MP (San Andreas Multiplayer) and open.mp servers. By combining a lightweight asynchronous Python query proxy, a high-performance C++ RakNet packet filter plugin, and a Pawn administration filterscript, ShieldWall protects game servers from query floods, packet attacks, and connection exploits.
+</p>
 
 ---
 
