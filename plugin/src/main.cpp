@@ -62,12 +62,42 @@ static cell AMX_NATIVE_CALL n_SW_SetRateLimit(AMX* amx, cell* params) {
     return 1;
 }
 
+// Native: SW_AddWhitelist(const ip[]);
+static cell AMX_NATIVE_CALL n_SW_AddWhitelist(AMX* amx, cell* params) {
+    char* ip = nullptr;
+    amx_StrParam(amx, params[1], ip);
+
+    if (!ip) return 0;
+    return Database::Instance().AddWhitelist(ip) ? 1 : 0;
+}
+
+// Native: SW_RemoveWhitelist(const ip[]);
+static cell AMX_NATIVE_CALL n_SW_RemoveWhitelist(AMX* amx, cell* params) {
+    char* ip = nullptr;
+    amx_StrParam(amx, params[1], ip);
+
+    if (!ip) return 0;
+    return Database::Instance().RemoveWhitelist(ip) ? 1 : 0;
+}
+
+// Native: SW_IsWhitelisted(const ip[]);
+static cell AMX_NATIVE_CALL n_SW_IsWhitelisted(AMX* amx, cell* params) {
+    char* ip = nullptr;
+    amx_StrParam(amx, params[1], ip);
+
+    if (!ip) return 0;
+    return Database::Instance().IsWhitelisted(ip) ? 1 : 0;
+}
+
 const AMX_NATIVE_INFO SW_Natives[] = {
     { "SW_BanIP", n_SW_BanIP },
     { "SW_UnbanIP", n_SW_UnbanIP },
     { "SW_IsIPBanned", n_SW_IsIPBanned },
     { "SW_ClearBans", n_SW_ClearBans },
     { "SW_SetRateLimit", n_SW_SetRateLimit },
+    { "SW_AddWhitelist", n_SW_AddWhitelist },
+    { "SW_RemoveWhitelist", n_SW_RemoveWhitelist },
+    { "SW_IsWhitelisted", n_SW_IsWhitelisted },
     { nullptr, nullptr }
 };
 

@@ -5,5 +5,8 @@
   "backend_port": 7778,
   "query_rate_limit": 50,
   "query_ban_duration": 60,
-  "cache_ttl": 2.0
+  "cache_ttl": 2.0,
+  "whitelist_ips": [
+    "127.0.0.1"
+  ]
 }

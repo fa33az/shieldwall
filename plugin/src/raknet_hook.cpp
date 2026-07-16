@@ -64,6 +64,10 @@ Packet* RAKNET_CALL Hooked_Receive(RAKNET_ARGS(pRakServer)) {
 
         std::string ip = packet->playerId.ToString(false);
 
+        if (Database::Instance().IsWhitelisted(ip)) {
+            break;
+        }
+
         std::string banReason;
         if (Database::Instance().IsBanned(ip, banReason)) {
             LOG_INFO("Dropped packet from banned IP: %s (Reason: %s)", ip.c_str(), banReason.c_str());

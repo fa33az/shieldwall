@@ -43,3 +43,24 @@ native SW_ClearBans();
  * <returns>1 always.</returns>
  */
 native SW_SetRateLimit(packets_per_sec);
+
+/**
+ * <summary>Adds an IP address to the whitelist. Whitelisted IPs bypass rate limits and bans.</summary>
+ * <param name="ip">The IP address string to whitelist.</param>
+ * <returns>1 on success, 0 on failure.</returns>
+ */
+native SW_AddWhitelist(const ip[]);
+
+/**
+ * <summary>Removes an IP address from the whitelist.</summary>
+ * <param name="ip">The IP address string to remove from whitelist.</param>
+ * <returns>1 on success, 0 on failure.</returns>
+ */
+native SW_RemoveWhitelist(const ip[]);
+
+/**
+ * <summary>Checks if an IP address is whitelisted.</summary>
+ * <param name="ip">The IP address string to check.</param>
+ * <returns>1 if whitelisted, 0 otherwise.</returns>
+ */
+native SW_IsWhitelisted(const ip[]);

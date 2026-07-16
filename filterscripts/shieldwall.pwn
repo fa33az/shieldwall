@@ -152,8 +152,77 @@ public OnPlayerCommandText(playerid, cmdtext[])
             SendClientMessage(playerid, 0x00FF00FF, msg);
             return 1;
         }
+        else if (strcmp(cmd, "whitelist", true) == 0)
+        {
+            new sub_cmd[32], target_ip[32];
+            new sidx = 0;
+            while (args[sidx] != '\0' && args[sidx] != ' ' && sidx < 31)
+            {
+                sub_cmd[sidx] = args[sidx];
+                sidx++;
+            }
+            sub_cmd[sidx] = '\0';
+            
+            while (args[sidx] == ' ') sidx++;
+            new tidx = 0;
+            while (args[sidx] != '\0' && args[sidx] != ' ' && tidx < 31)
+            {
+                target_ip[tidx++] = args[sidx++];
+            }
+            target_ip[tidx] = '\0';
+
+            if (sub_cmd[0] == '\0' || target_ip[0] == '\0')
+            {
+                SendClientMessage(playerid, 0xFF0000FF, "Usage: /shield whitelist [add/remove/check] [IP]");
+                return 1;
+            }
+
+            new msg[128];
+            if (strcmp(sub_cmd, "add", true) == 0)
+            {
+                if (SW_AddWhitelist(target_ip))
+                {
+                    format(msg, sizeof(msg), "[ShieldWall] Successfully added IP %s to whitelist.", target_ip);
+                    SendClientMessage(playerid, 0x00FF00FF, msg);
+                }
+                else
+                {
+                    SendClientMessage(playerid, 0xFF0000FF, "[ShieldWall] Failed to whitelist IP.");
+                }
+            }
+            else if (strcmp(sub_cmd, "remove", true) == 0)
+            {
+                if (SW_RemoveWhitelist(target_ip))
+                {
+                    format(msg, sizeof(msg), "[ShieldWall] Successfully removed IP %s from whitelist.", target_ip);
+                    SendClientMessage(playerid, 0x00FF00FF, msg);
+                }
+                else
+                {
+                    SendClientMessage(playerid, 0xFF0000FF, "[ShieldWall] Failed to remove IP from whitelist.");
+                }
+            }
+            else if (strcmp(sub_cmd, "check", true) == 0)
+            {
+                if (SW_IsWhitelisted(target_ip))
+                {
+                    format(msg, sizeof(msg), "[ShieldWall] IP %s is WHITELISTED.", target_ip);
+                    SendClientMessage(playerid, 0x00FF00FF, msg);
+                }
+                else
+                {
+                    format(msg, sizeof(msg), "[ShieldWall] IP %s is NOT whitelisted.", target_ip);
+                    SendClientMessage(playerid, 0xFF0000FF, msg);
+                }
+            }
+            else
+            {
+                SendClientMessage(playerid, 0xFF0000FF, "Usage: /shield whitelist [add/remove/check] [IP]");
+            }
+            return 1;
+        }
         
-        SendClientMessage(playerid, 0xFFFFFF, "ShieldWall Commands: status, ban, unban, check, limit");
+        SendClientMessage(playerid, 0xFFFFFF, "ShieldWall Commands: status, ban, unban, check, limit, whitelist");
         return 1;
     }
     return 0;

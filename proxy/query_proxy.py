@@ -19,11 +19,17 @@ class QueryProxy:
         self.query_rate_limit = self.config['query_rate_limit']
         self.query_ban_duration = self.config['query_ban_duration']
         self.cache_ttl = self.config['cache_ttl']
+        self.whitelist_ips = set(self.config.get('whitelist_ips', []))
 
         self.cache = {}
         self.rate_limiter = {}
         self.ban_list = {}
         self.clients = {}
+
+        # Stats counters
+        self.stats_cache_hits = 0
+        self.stats_forwards = 0
+        self.stats_blocked = 0
 
     def is_banned(self, ip):
         now = time.time()
@@ -35,6 +41,9 @@ class QueryProxy:
         return False
 
     def check_rate_limit(self, ip):
+        if ip in self.whitelist_ips:
+            return True
+
         if self.is_banned(ip):
             return False
 
@@ -82,11 +91,13 @@ class ProxyServerProtocol(asyncio.DatagramProtocol):
 
         if data.startswith(b'SAMP') and len(data) >= 11:
             if not self.proxy.check_rate_limit(client_ip):
+                self.proxy.stats_blocked += 1
                 return
 
             query_type = data[10:11]
             
             if query_type == b'p':
+                self.proxy.stats_forwards += 1
                 self.forward_query(data, addr)
                 return
 
@@ -94,9 +105,11 @@ class ProxyServerProtocol(asyncio.DatagramProtocol):
             if query_type in self.proxy.cache:
                 cached_data, timestamp = self.proxy.cache[query_type]
                 if now - timestamp <= self.proxy.cache_ttl:
+                    self.proxy.stats_cache_hits += 1
                     self.transport.sendto(cached_data, addr)
                     return
 
+            self.proxy.stats_forwards += 1
             asyncio.create_task(self.forward_query_and_cache(data, addr, query_type))
         else:
             asyncio.create_task(self.forward_game_packet(data, addr))
@@ -147,6 +160,9 @@ class ProxyServerProtocol(asyncio.DatagramProtocol):
 async def cleanup_clients(proxy):
     while True:
         await asyncio.sleep(10)
+        # Log stats report to console
+        print(f"[Proxy Stats] Cache Hits: {proxy.stats_cache_hits} | Forwards: {proxy.stats_forwards} | Blocked: {proxy.stats_blocked} | Active Clients: {len(proxy.clients)}")
+        
         now = time.time()
         to_remove = []
         for addr, protocol in proxy.clients.items():

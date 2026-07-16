@@ -47,12 +47,15 @@ bool Database::Initialize(const std::string& dbPath) {
         "banned_at INTEGER, "
         "expires_at INTEGER, "
         "reason TEXT"
+        ");"
+        "CREATE TABLE IF NOT EXISTS whitelist ("
+        "ip TEXT PRIMARY KEY"
         ");";
 
     char* err_msg = nullptr;
     rc = sqlite3_exec(db_, sql, nullptr, nullptr, &err_msg);
     if (rc != SQLITE_OK) {
-        LOG_ERROR("SQL error creating table: %s", err_msg);
+        LOG_ERROR("SQL error creating tables: %s", err_msg);
         sqlite3_free(err_msg);
         sqlite3_close(db_);
         db_ = nullptr;
@@ -210,4 +213,77 @@ void Database::CleanExpiredBans() {
     if (rc != SQLITE_DONE) {
         LOG_ERROR("Failed to execute CleanExpiredBans statement: %s", sqlite3_errmsg(db_));
     }
+}
+
+bool Database::AddWhitelist(const std::string& ip) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!initialized_ || !db_) return false;
+
+    const char* sql = "INSERT OR REPLACE INTO whitelist (ip) VALUES (?);";
+    sqlite3_stmt* stmt = nullptr;
+    int rc = sqlite3_prepare_v2(db_, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+        LOG_ERROR("Failed to prepare AddWhitelist statement: %s", sqlite3_errmsg(db_));
+        return false;
+    }
+
+    sqlite3_bind_text(stmt, 1, ip.c_str(), -1, SQLITE_TRANSIENT);
+
+    rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+    if (rc != SQLITE_DONE) {
+        LOG_ERROR("Failed to execute AddWhitelist statement: %s", sqlite3_errmsg(db_));
+        return false;
+    }
+
+    return true;
+}
+
+bool Database::RemoveWhitelist(const std::string& ip) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!initialized_ || !db_) return false;
+
+    const char* sql = "DELETE FROM whitelist WHERE ip = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int rc = sqlite3_prepare_v2(db_, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+        LOG_ERROR("Failed to prepare RemoveWhitelist statement: %s", sqlite3_errmsg(db_));
+        return false;
+    }
+
+    sqlite3_bind_text(stmt, 1, ip.c_str(), -1, SQLITE_TRANSIENT);
+
+    rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+    if (rc != SQLITE_DONE) {
+        LOG_ERROR("Failed to execute RemoveWhitelist statement: %s", sqlite3_errmsg(db_));
+        return false;
+    }
+
+    return true;
+}
+
+bool Database::IsWhitelisted(const std::string& ip) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!initialized_ || !db_) return false;
+
+    const char* sql = "SELECT 1 FROM whitelist WHERE ip = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int rc = sqlite3_prepare_v2(db_, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+        LOG_ERROR("Failed to prepare IsWhitelisted statement: %s", sqlite3_errmsg(db_));
+        return false;
+    }
+
+    sqlite3_bind_text(stmt, 1, ip.c_str(), -1, SQLITE_TRANSIENT);
+
+    bool isWhitelisted = false;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        isWhitelisted = true;
+    }
+
+    sqlite3_finalize(stmt);
+    return isWhitelisted;
 }

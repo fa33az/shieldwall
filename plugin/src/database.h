@@ -30,6 +30,11 @@ public:
     std::vector<BanEntry> GetActiveBans();
     void CleanExpiredBans();
 
+    // Whitelist management
+    bool AddWhitelist(const std::string& ip);
+    bool RemoveWhitelist(const std::string& ip);
+    bool IsWhitelisted(const std::string& ip);
+
 private:
     Database() = default;
     ~Database();

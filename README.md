@@ -95,7 +95,8 @@ graph TD
      "backend_port": 7778,
      "query_rate_limit": 50,
      "query_ban_duration": 60,
-     "cache_ttl": 2.0
+     "cache_ttl": 2.0,
+     "whitelist_ips": ["127.0.0.1"]
    }
    ```
 3. Place `start.bat` in the root folder of your SA-MP server and double-click it. This will launch both the Python Query Proxy and the SA-MP server simultaneously.
@@ -113,6 +114,7 @@ The following commands are available to administrators in-game:
 | /shield unban | [IP] | Unbans a previously banned IP address. |
 | /shield check | [IP] | Checks whether an IP address is currently banned. |
 | /shield limit | [packets_per_sec] | Adjusts the packet rate limit threshold dynamically. |
+| /shield whitelist | [add/remove/check] [IP] | Manages the IP whitelist bypass filter. |
 
 ---
 
