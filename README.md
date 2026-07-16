@@ -15,9 +15,9 @@ sequenceDiagram
     participant Proxy as Layer 2: Python Proxy (Port 7777)
     participant Plugin as Layer 1: C++ Plugin (Port 7778)
     participant Server as SA-MP Server Core
-    database DB as SQLite Database
+    participant DB as SQLite Database
 
-    rect rgb(240, 248, 255)
+    rect rgb(240,248,255)
         note right of Client: Case A: Server Query / Ping
         Client->>Proxy: UDP Query Packet (e.g. Server Info)
         alt IP is in Proxy Ban List
@@ -34,7 +34,7 @@ sequenceDiagram
         end
     end
 
-    rect rgb(255, 240, 245)
+    rect rgb(255,240,245)
         note right of Client: Case B: Game Sync / Connection Packet
         Client->>Proxy: UDP Game Packet (RakNet protocol)
         Proxy->>Plugin: Forward Packet to Backend (Dynamic NAT)
