@@ -6,6 +6,7 @@ import socket
 import json
 import time
 import os
+import sys
 
 class QueryProxy:
     def __init__(self, config_path):
@@ -56,8 +57,46 @@ class QueryProxy:
         if len(timestamps) > self.query_rate_limit:
             print(f"[Proxy] IP {ip} rate limited. Banning for {self.query_ban_duration} seconds.")
             self.ban_list[ip] = now + self.query_ban_duration
+            asyncio.create_task(add_firewall_rule(ip))
             return False
         return True
+
+async def add_firewall_rule(ip):
+    if os.name == 'nt':
+        cmd = f'netsh advfirewall firewall add rule name="ShieldWall-Ban-{ip}" dir=in action=block remoteip={ip}'
+    else:
+        cmd = f'iptables -A INPUT -s {ip} -j DROP'
+    try:
+        print(f"[Proxy] Adding OS firewall block rule for IP: {ip}")
+        proc = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+        await proc.wait()
+    except Exception as e:
+        print(f"[Proxy] Failed to add firewall rule: {e}")
+
+async def remove_firewall_rule(ip):
+    if os.name == 'nt':
+        cmd = f'netsh advfirewall firewall delete rule name="ShieldWall-Ban-{ip}"'
+    else:
+        cmd = f'iptables -D INPUT -s {ip} -j DROP'
+    try:
+        print(f"[Proxy] Removing OS firewall block rule for IP: {ip}")
+        proc = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+        await proc.wait()
+    except Exception as e:
+        print(f"[Proxy] Failed to remove firewall rule: {e}")
+
+async def clear_existing_firewall_rules():
+    print("[Proxy] Cleaning up any leftover ShieldWall firewall rules...")
+    if os.name == 'nt':
+        cmd = 'powershell -Command "Remove-NetFirewallRule -DisplayName \'ShieldWall-Ban-*\' -ErrorAction SilentlyContinue"'
+    else:
+        # Silently try to delete input rules (this is safe if none exist)
+        cmd = 'iptables -F' # Or just ignore for Linux non-root runs
+    try:
+        proc = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+        await proc.wait()
+    except Exception:
+        pass
 
 class BackendProxyProtocol(asyncio.DatagramProtocol):
     def __init__(self, proxy, client_addr):
@@ -160,7 +199,6 @@ class ProxyServerProtocol(asyncio.DatagramProtocol):
 async def cleanup_clients(proxy):
     while True:
         await asyncio.sleep(10)
-        # Log stats report to console
         print(f"[Proxy Stats] Cache Hits: {proxy.stats_cache_hits} | Forwards: {proxy.stats_forwards} | Blocked: {proxy.stats_blocked} | Active Clients: {len(proxy.clients)}")
         
         now = time.time()
@@ -173,9 +211,25 @@ async def cleanup_clients(proxy):
         for addr in to_remove:
             del proxy.clients[addr]
 
+async def cleanup_bans(proxy):
+    while True:
+        await asyncio.sleep(1)
+        now = time.time()
+        to_unban = []
+        for ip, expires in list(proxy.ban_list.items()):
+            if now >= expires:
+                to_unban.append(ip)
+        for ip in to_unban:
+            print(f"[Proxy] Ban expired for IP {ip}. Removing firewall rules.")
+            del proxy.ban_list[ip]
+            asyncio.create_task(remove_firewall_rule(ip))
+
 async def main():
     config_path = os.path.join(os.path.dirname(__file__), 'config.json')
     proxy = QueryProxy(config_path)
+
+    # Clean leftover firewall rules on startup
+    await clear_existing_firewall_rules()
 
     loop = asyncio.get_running_loop()
     transport, protocol = await loop.create_datagram_endpoint(
@@ -184,10 +238,15 @@ async def main():
     )
 
     asyncio.create_task(cleanup_clients(proxy))
+    asyncio.create_task(cleanup_bans(proxy))
 
     try:
         await asyncio.Event().wait()
+    except KeyboardInterrupt:
+        pass
     finally:
+        # Clean firewall rules on shutdown
+        await clear_existing_firewall_rules()
         transport.close()
 
 if __name__ == '__main__':

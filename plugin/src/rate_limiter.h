@@ -28,9 +28,11 @@ private:
     RateLimiter& operator=(const RateLimiter&) = delete;
 
     std::unordered_map<std::string, std::vector<double>> tracker_;
+    std::unordered_map<std::string, int> strike_tracker_; // Tracks consecutive limit violations
     std::mutex mutex_;
     int limit_ = 10;
     double window_seconds_ = 1.0;
+    const int max_strikes_ = 3; // Maximum consecutive violations allowed before ban
 };
 
 #endif // RATE_LIMITER_H

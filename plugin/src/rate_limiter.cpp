@@ -40,7 +40,20 @@ bool RateLimiter::CheckLimit(const std::string& ip) {
     timestamps = std::move(filtered);
 
     if (static_cast<int>(timestamps.size()) > limit_) {
-        return false;
+        int& strikes = strike_tracker_[ip];
+        strikes++;
+        if (strikes >= max_strikes_) {
+            return false;
+        }
+    } else {
+        auto it = strike_tracker_.find(ip);
+        if (it != strike_tracker_.end()) {
+            if (it->second > 0) {
+                it->second--;
+            } else {
+                strike_tracker_.erase(it);
+            }
+        }
     }
 
     return true;
@@ -49,9 +62,11 @@ bool RateLimiter::CheckLimit(const std::string& ip) {
 void RateLimiter::Clear(const std::string& ip) {
     std::lock_guard<std::mutex> lock(mutex_);
     tracker_.erase(ip);
+    strike_tracker_.erase(ip);
 }
 
 void RateLimiter::ClearAll() {
     std::lock_guard<std::mutex> lock(mutex_);
     tracker_.clear();
+    strike_tracker_.clear();
 }
