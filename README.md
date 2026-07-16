@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://open.mp" target="_blank">
-    <img src="logo.png" alt="ShieldWall Logo" width="200" height="200" />
+    <img src="logo.png" alt="ShieldWall Logo" width="400" />
   </a>
 </p>
 
