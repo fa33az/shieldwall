@@ -18,19 +18,19 @@ The protection suite operates on three distinct layers to intercept, filter, and
 
 ```mermaid
 graph TD
-    Start[Paket UDP Masuk ke Port 7777] --> IsQuery{Apakah Paket Query?}
-    IsQuery -->|Ya| CheckCache{Ada di Cache?}
-    CheckCache -->|Ya| ServeCache[Kirim Jawaban dari Cache]
-    CheckCache -->|Tidak| CheckRate{IP Banjir Query?}
-    CheckRate -->|Ya| BlockIP[Blokir IP & Drop Paket]
-    CheckRate -->|Tidak| ForwardQuery[Minta Data ke Backend 7778]
-    ForwardQuery --> SaveCache[Simpan ke Cache & Kirim ke Client]
-    IsQuery -->|Tidak| ForwardGame[Teruskan ke Backend 7778]
-    ForwardGame --> CheckBan{IP Banned di SQLite?}
-    CheckBan -->|Ya| DropPlugin[Drop Paket di C++ Plugin]
-    CheckBan -->|Tidak| CheckGameRate{IP Banjir Game Paket?}
-    CheckGameRate -->|Ya| AutoBan[Ban IP ke SQLite & Drop Paket]
-    CheckGameRate -->|Tidak| ProcessGame[Proses Paket & Kirim Respon]
+    Start["Paket UDP Masuk ke Port 7777"] --> IsQuery{"Apakah Paket Query?"}
+    IsQuery -->|Ya| CheckCache{"Ada di Cache?"}
+    CheckCache -->|Ya| ServeCache["Kirim Jawaban dari Cache"]
+    CheckCache -->|Tidak| CheckRate{"IP Banjir Query?"}
+    CheckRate -->|Ya| BlockIP["Blokir IP & Drop Paket"]
+    CheckRate -->|Tidak| ForwardQuery["Minta Data ke Backend 7778"]
+    ForwardQuery --> SaveCache["Simpan ke Cache & Kirim ke Client"]
+    IsQuery -->|Tidak| ForwardGame["Teruskan ke Backend 7778"]
+    ForwardGame --> CheckBan{"IP Banned di SQLite?"}
+    CheckBan -->|Ya| DropPlugin["Drop Paket di C++ Plugin"]
+    CheckBan -->|Tidak| CheckGameRate{"IP Banjir Game Paket?"}
+    CheckGameRate -->|Ya| AutoBan["Ban IP ke SQLite & Drop Paket"]
+    CheckGameRate -->|Tidak| ProcessGame["Proses Paket & Kirim Respon"]
 ```
 
 ### Component Breakdown
