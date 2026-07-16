@@ -55,22 +55,29 @@ sequenceDiagram
     end
 ```
 
-### Layer 1: C++ RakNet Packet Filter Plugin
-- Hooks the `RakServerInterface::Receive` method via virtual method table detouring (vtable index 9 on Windows, 10 on Linux).
-- Intercepts raw network packets directly in memory.
-- Performs sliding-window rate limiting per IP address within a 1.0-second window.
-- Drops packets from banned IP addresses instantly, bypassing the main server logic and saving CPU cycles.
-- Integrates with an SQLite database for persistent ban synchronization.
+### Component Breakdown
 
-### Layer 2: Python Query Proxy
-- Listens on the public server port (e.g. 7777) and forwards game traffic transparently to the backend server.
-- Intercepts and parses SA-MP query packets.
-- Caches query responses (information, rules, clients, and detailed client queries) with a configurable Time-To-Live (default: 2.0 seconds) to prevent query reflection floods.
-- Automatically rate-limits query floods and blocks offending IPs for a customizable duration.
+| Layer | Component | Primary Responsibility | Technical Mechanism |
+|---|---|---|---|
+| **Layer 1** | C++ RakNet Filter Plugin | In-memory packet filtering and rate limiting | Virtual Method Table (VMT) Detouring & SQLite |
+| **Layer 2** | Python Query Proxy | Query caching and public network masking | Asynchronous UDP socket multiplexing (NAT) |
+| **Layer 3** | Pawn Administration Script | Admin command interface and dynamic ban management | Plugin natives & SQLite CRUD |
 
-### Layer 3: Pawn Administration Filterscript
-- Provides in-game commands for server administrators to check protection status, set rate limits, ban IPs, and unban IPs in real-time.
-- Interfaces with the SQLite database to sync bans with the C++ filtering layer instantly.
+#### Layer 1: C++ RakNet Packet Filter Plugin
+* **Virtual Method Table Hooking**: Detours the `Receive` virtual method (vtable index 9 on Windows, 10 on Linux) of `RakServerInterface` to filter packets before the server core can parse them.
+* **Sliding Window Rate Limiter**: Tracks incoming packet timestamps per IP address within a rolling 1.0-second window to detect and block flooders.
+* **Persistent SQLite Bans**: Queries the local `shieldwall.db` instantly to drop packets from blacklisted IPs.
+* **Legacy RakNet Integration**: Implements a custom `PlayerID::ToString` converter to extract and format IP strings from binary network addresses.
+
+#### Layer 2: Python Query Proxy
+* **Query Interception**: Distinguishes SA-MP query packets (prefixed with `SAMP` magic header) from raw game sync packets.
+* **Response Caching**: Caches server information, rules, and player list responses with a 2.0-second Time-To-Live (TTL) to block reflection/amplification attacks.
+* **Automated IP Banning**: Automatically detects query floods exceeding the rate limit (default: 50 queries/sec) and applies a 60-second block.
+* **Transparent Game Routing**: Routes active connection packets dynamically to the backend server using an asynchronous NAT-style socket pool.
+
+#### Layer 3: Pawn Administration Filterscript
+* **Real-time Commands**: Exposes administrative actions (`/shield ban`, `/shield unban`, `/shield limit`, `/shield check`) to server operators.
+* **Plugin Native Interfacing**: Links in-game scripts directly to C++ plugin logic via native function mappings defined in `shieldwall.inc`.
 
 ---
 
