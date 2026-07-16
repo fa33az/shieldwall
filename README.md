@@ -9,31 +9,22 @@ ShieldWall is a multi-layer anti-DDoS protection suite designed for SA-MP (San A
 The protection suite operates on three distinct layers to intercept, filter, and cache network traffic before it can exhaust server resources.
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as Player / Attacker
-    participant Proxy as Layer 2: Proxy (Port 7777)
-    participant Server as Layer 1: Server & Plugin (Port 7778)
+graph TD
+    Start[Paket UDP Masuk ke Port 7777] --> IsQuery{Apakah Paket Query?}
 
-    note over Client, Server: Skenario A: Query / Ping Server (Favorites List)
-    Client->>Proxy: Kirim Query / Ping
-    alt Query ada di Cache
-        Proxy-->>Client: Balas langsung dari Cache (Hemat CPU)
-    else Cache Miss / IP Flooding
-        Proxy->>Server: Minta data terbaru (jika IP tidak diflood)
-        Server-->>Proxy: Kirim data
-        Proxy-->>Client: Balas ke Client
-    end
+    IsQuery -->|Ya| CheckCache{Ada di Cache?}
+    CheckCache -->|Ya| ServeCache[Kirim Jawaban dari Cache]
+    CheckCache -->|Tidak| CheckRate{IP Banjir Query?}
+    CheckRate -->|Ya| BlockIP[Blokir IP & Drop Paket]
+    CheckRate -->|Tidak| ForwardQuery[Minta Data ke Backend 7778]
+    ForwardQuery --> SaveCache[Simpan ke Cache & Kirim ke Client]
 
-    note over Client, Server: Skenario B: Game Packet (Bermain / Login)
-    Client->>Proxy: Kirim Game Packet
-    Proxy->>Server: Teruskan paket game
-    alt IP masuk Blacklist / Flooding
-        Server-->>Server: Paket didrop oleh C++ Plugin (Hemat Resource)
-    else IP Aman
-        Server->>Server: Proses paket di game mode
-        Server-->>Client: Kirim respon game
-    end
+    IsQuery -->|Tidak| ForwardGame[Teruskan ke Backend 7778]
+    ForwardGame --> CheckBan{IP Banned di SQLite?}
+    CheckBan -->|Ya| DropPlugin[Drop Paket di C++ Plugin]
+    CheckBan -->|Tidak| CheckGameRate{IP Banjir Game Paket?}
+    CheckGameRate -->|Ya| AutoBan[Ban IP ke SQLite & Drop Paket]
+    CheckGameRate -->|Tidak| ProcessGame[Proses Paket & Kirim Respon]
 ```
 
 ### Component Breakdown
